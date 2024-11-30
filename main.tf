@@ -23,8 +23,8 @@ resource "aws_dynamodb_table" "games_logs" {
 
 
 #Lambda IAM execution role
-resource "aws_iam_role" "lambda_role" {
-  name = "lambda_execution_role"
+resource "aws_iam_role" "lambda_role_prod" {
+  name = "lambda_execution_role_prod"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -56,7 +56,7 @@ resource "aws_iam_policy" "lambda_dynamodb_policy" {
       {
         Effect   = "Allow",
         Action   = "dynamodb:Scan",
-        Resource = "arn:aws:dynamodb:us-east-1:172234530661:table/GamesLogs"
+        Resource = "arn:aws:dynamodb:us-east-1:172234530661:table/GamesLogsProd"
       }
     ]
   })
@@ -64,36 +64,36 @@ resource "aws_iam_policy" "lambda_dynamodb_policy" {
 
 #Attatching lambda-dynamodb policy to lambda execution role
 resource "aws_iam_role_policy_attachment" "lambda_policy_attachment_dynamo" {
-  role       = aws_iam_role.lambda_role.name
+  role       = aws_iam_role.lambda_role_prod.name
   policy_arn = aws_iam_policy.lambda_dynamodb_policy.arn
 }
 
 
 #Lambda function to save logs
-resource "aws_lambda_function" "save_log" {
+resource "aws_lambda_function" "save_log_prod" {
   filename         = "${path.module}/save_log.zip"
-  function_name    = "SaveLogFunction"
-  role             = aws_iam_role.lambda_role.arn
+  function_name    = "SaveLogFunctionProd"
+  role             = aws_iam_role.lambda_role_prod.arn
   handler          = "save_log.lambda_handler"
   runtime          = "python3.9"
   environment {
     variables = {
-      TABLE_NAME = aws_dynamodb_table.games_logs.name
+      TABLE_NAME = aws_dynamodb_table.games_logs_prod.name
     }
   }
 }
 
 
 #Lambda function to get the logs
-resource "aws_lambda_function" "get_logs" {
+resource "aws_lambda_function" "get_logs_prod" {
   filename         = "${path.module}/get_logs.zip"
-  function_name    = "GetLogsFunction"
-  role             = aws_iam_role.lambda_role.arn
+  function_name    = "GetLogsFunctionProd"
+  role             = aws_iam_role.lambda_role_prod.arn
   handler          = "get_logs.lambda_handler"
   runtime          = "python3.9"
   environment {
     variables = {
-      TABLE_NAME = aws_dynamodb_table.games_logs.name
+      TABLE_NAME = aws_dynamodb_table.games_logs_prod.name
     }
   }
 }
