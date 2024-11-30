@@ -41,7 +41,7 @@ resource "aws_iam_role" "lambda_role_prod" {
 # Basic lambda execution role policy 
 resource "aws_iam_policy_attachment" "lambda_policy_attachment" {
   name       = "lambda_policy_attachment"
-  roles      = [aws_iam_role.lambda_role.name]
+  roles      = [aws_iam_role.lambda_role_prod.name]
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
@@ -135,7 +135,7 @@ resource "aws_api_gateway_integration" "post_integration" {
   http_method = aws_api_gateway_method.post_method.http_method
   type        = "AWS_PROXY"
   integration_http_method = "POST"
-  uri = aws_lambda_function.save_log_prod.invoke_arnf
+  uri = aws_lambda_function.save_log_prod.invoke_arn
 }
 
 #gett_logs lambda integration
