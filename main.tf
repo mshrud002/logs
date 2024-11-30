@@ -48,7 +48,7 @@ resource "aws_iam_policy_attachment" "lambda_policy_attachment" {
 
 #policy to allow lambda to scan dynamoDB table
 resource "aws_iam_policy" "lambda_dynamodb_prod_policy" {
-  name = "lambda-dynamodb-scan-policy"
+  name = "lambda-dynamodb-scan-prod-policy"
 
   policy = jsonencode({
     Version = "2012-10-17",
