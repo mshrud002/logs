@@ -3,7 +3,7 @@
 }
 
 resource "aws_dynamodb_table" "games_logs_prod" {
-  name           = "GamesLogs"
+  name           = "GamesLogsProd"
   billing_mode   = "PROVISIONED"
   hash_key       = "logId"
   read_capacity  = 20
@@ -47,7 +47,7 @@ resource "aws_iam_policy_attachment" "lambda_policy_attachment" {
 
 
 #policy to allow lambda to scan dynamoDB table
-resource "aws_iam_policy" "lambda_dynamodb_policy" {
+resource "aws_iam_policy" "lambda_dynamodb_prod_policy" {
   name = "lambda-dynamodb-scan-policy"
 
   policy = jsonencode({
@@ -65,7 +65,7 @@ resource "aws_iam_policy" "lambda_dynamodb_policy" {
 #Attatching lambda-dynamodb policy to lambda execution role
 resource "aws_iam_role_policy_attachment" "lambda_policy_attachment_dynamo" {
   role       = aws_iam_role.lambda_role_prod.name
-  policy_arn = aws_iam_policy.lambda_dynamodb_policy.arn
+  policy_arn = aws_iam_policy.lambda_dynamodb_prod_policy.arn
 }
 
 
