@@ -2,7 +2,7 @@
    region = "us-east-1"
 }
 
-resource "aws_dynamodb_table" "games_logs" {
+resource "aws_dynamodb_table" "games_logs_prod" {
   name           = "GamesLogs"
   billing_mode   = "PROVISIONED"
   hash_key       = "logId"
@@ -74,7 +74,7 @@ resource "aws_lambda_function" "save_log_prod" {
   filename         = "${path.module}/save_log.zip"
   function_name    = "SaveLogFunctionProd"
   role             = aws_iam_role.lambda_role_prod.arn
-  handler          = "save_log.lambda_handler"
+  handler          = "save_log_prod.lambda_handler"
   runtime          = "python3.9"
   environment {
     variables = {
@@ -89,7 +89,7 @@ resource "aws_lambda_function" "get_logs_prod" {
   filename         = "${path.module}/get_logs.zip"
   function_name    = "GetLogsFunctionProd"
   role             = aws_iam_role.lambda_role_prod.arn
-  handler          = "get_logs.lambda_handler"
+  handler          = "get_logs_prod.lambda_handler"
   runtime          = "python3.9"
   environment {
     variables = {
@@ -135,7 +135,7 @@ resource "aws_api_gateway_integration" "post_integration" {
   http_method = aws_api_gateway_method.post_method.http_method
   type        = "AWS_PROXY"
   integration_http_method = "POST"
-  uri = aws_lambda_function.save_log.invoke_arn
+  uri = aws_lambda_function.save_log_prod.invoke_arnf
 }
 
 #gett_logs lambda integration
@@ -145,7 +145,7 @@ resource "aws_api_gateway_integration" "get_integration" {
   http_method = aws_api_gateway_method.get_method.http_method
   type        = "AWS_PROXY"
   integration_http_method = "GET"
-  uri = aws_lambda_function.get_logs.invoke_arn
+  uri = aws_lambda_function.get_logs_prod.invoke_arn
 }
 
 
@@ -153,7 +153,7 @@ resource "aws_api_gateway_integration" "get_integration" {
 resource "aws_lambda_permission" "api_gateway_post" {
   statement_id  = "AllowAPIGatewayInvokePOST"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.save_log.arn
+  function_name = aws_lambda_function.save_log_prod.arn
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_api_gateway_rest_api.logs_api.execution_arn}/*"
 }
@@ -163,7 +163,7 @@ resource "aws_lambda_permission" "api_gateway_post" {
 resource "aws_lambda_permission" "api_gateway_get" {
   statement_id  = "AllowAPIGatewayInvokeGET"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.get_logs.arn
+  function_name = aws_lambda_function.get_logs_prod.arn
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_api_gateway_rest_api.logs_api.execution_arn}/*"
 }
