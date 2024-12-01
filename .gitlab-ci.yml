@@ -48,3 +48,7 @@ deploy-job:      # This job runs in the deploy stage.
     - echo "Deploying application..."
     - echo "Application successfully deployed."
 
+
+
+    #NB!!! THIS FILE WAS ONLY USED IN GITLAB, FOR GITHUB SIDE OF PROJECT, GITHUB WORKFLOW WAS USED
+

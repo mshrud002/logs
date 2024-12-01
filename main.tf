@@ -1,14 +1,17 @@
+ # AWS provider
  provider "aws" {
    region = "us-east-1"
 }
 
+
+# Creating dynamodb tabble
 resource "aws_dynamodb_table" "games_logs_prod" {
   name           = "GamesLogsProd"
   billing_mode   = "PROVISIONED"
   hash_key       = "logId"
   read_capacity  = 20
   write_capacity = 20
-  range_key      = "timestamp"
+  range_key      = "DateTime"
 
   attribute {
     name = "logId"
@@ -16,7 +19,7 @@ resource "aws_dynamodb_table" "games_logs_prod" {
   }
 
   attribute {
-    name = "timestamp"
+    name = "DateTime"
     type = "N"
   }
 }
@@ -55,7 +58,7 @@ resource "aws_iam_policy" "lambda_dynamodb_prod_policy" {
     Statement = [
       {
         Effect   = "Allow",
-        Action   = "dynamodb:Scan",
+        Action   = ["dynamodb:Scan","dynamodb:PutItem"],
         Resource = "arn:aws:dynamodb:us-east-1:172234530661:table/GamesLogsProd"
       }
     ]
@@ -168,6 +171,7 @@ resource "aws_lambda_permission" "api_gateway_get" {
   source_arn    = "${aws_api_gateway_rest_api.logs_api.execution_arn}/*"
 }
 
+#Output the api endpoint
 output "api_endpoint" {
   value = "${aws_api_gateway_rest_api.logs_api.execution_arn}/games_logs"
 }
