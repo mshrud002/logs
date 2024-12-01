@@ -58,7 +58,7 @@ resource "aws_iam_policy" "lambda_dynamodb_prod_policy" {
     Statement = [
       {
         Effect   = "Allow",
-        Action   = "dynamodb:Scan",
+        Action   = ["dynamodb:Scan","dynamodb:PutItem"],
         Resource = "arn:aws:dynamodb:us-east-1:172234530661:table/GamesLogsProd"
       }
     ]
