@@ -1,7 +1,7 @@
-#  # AWS provider
-#  provider "aws" {
-#    region = "us-east-1"
-# }
+ # AWS provider
+ provider "aws" {
+   region = "us-east-1"
+}
 
 
 # # Creating dynamodb tabble
