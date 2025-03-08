@@ -4,174 +4,108 @@
 }
 
 
-# # Creating dynamodb tabble
-# resource "aws_dynamodb_table" "games_logs_prod" {
-#   name           = "GamesLogsProd"
-#   billing_mode   = "PROVISIONED"
-#   hash_key       = "logId"
-#   read_capacity  = 20
-#   write_capacity = 20
-#   range_key      = "DateTime"
 
-#   attribute {
-#     name = "logId"
-#     type = "S"
-#   }
+# data "aws_availability_zones" "available" {}
 
-#   attribute {
-#     name = "DateTime"
-#     type = "N"
-#   }
-# }
+locals {
+  cluster_name = "terraform-2-eks-${random_string.suffix.result}"
+}
 
+resource "random_string" "suffix" {
+  length  = 8
+  special = false
+}
 
-# #Lambda IAM execution role
-# resource "aws_iam_role" "lambda_role_prod" {
-#   name = "lambda_execution_role_prod"
+module "vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "3.19.0"
 
-#   assume_role_policy = jsonencode({
-#     Version = "2012-10-17"
-#     Statement = [{
-#       Effect = "Allow"
-#       Principal = {
-#         Service = "lambda.amazonaws.com"
-#       }
-#       Action = "sts:AssumeRole"
-#     }]
-#   })
-# }
+  name = "terraform-vpc"
 
-# # Basic lambda execution role policy 
-# resource "aws_iam_policy_attachment" "lambda_policy_attachment" {
-#   name       = "lambda_policy_attachment"
-#   roles      = [aws_iam_role.lambda_role_prod.name]
-#   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-# }
+  cidr = "10.0.0.0/16"
+  azs  = slice(data.aws_availability_zones.available.names, 0, 3)
 
+  private_subnets = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+  public_subnets  = ["10.0.4.0/24", "10.0.5.0/24", "10.0.6.0/24"]
 
-# #policy to allow lambda to scan dynamoDB table
-# resource "aws_iam_policy" "lambda_dynamodb_prod_policy" {
-#   name = "lambda-dynamodb-scan-prod-policy"
+  enable_nat_gateway   = true
+  single_nat_gateway   = true
+  enable_dns_hostnames = true
 
-#   policy = jsonencode({
-#     Version = "2012-10-17",
-#     Statement = [
-#       {
-#         Effect   = "Allow",
-#         Action   = ["dynamodb:Scan","dynamodb:PutItem"],
-#         Resource = "arn:aws:dynamodb:us-east-1:172234530661:table/GamesLogsProd"
-#       }
-#     ]
-#   })
-# }
+  public_subnet_tags = {
+    "kubernetes.io/cluster/${local.cluster_name}" = "shared"
+    "kubernetes.io/role/elb"                      = 1
+  }
 
-# #Attatching lambda-dynamodb policy to lambda execution role
-# resource "aws_iam_role_policy_attachment" "lambda_policy_attachment_dynamo" {
-#   role       = aws_iam_role.lambda_role_prod.name
-#   policy_arn = aws_iam_policy.lambda_dynamodb_prod_policy.arn
-# }
+  private_subnet_tags = {
+    "kubernetes.io/cluster/${local.cluster_name}" = "shared"
+    "kubernetes.io/role/internal-elb"             = 1
+  }
+}
 
+module "eks" {
+  source  = "terraform-aws-modules/eks/aws"
+  version = "19.5.1"
 
-# #Lambda function to save logs
-# resource "aws_lambda_function" "save_log_prod" {
-#   filename         = "${path.module}/save_log.zip"
-#   function_name    = "SaveLogFunctionProd"
-#   role             = aws_iam_role.lambda_role_prod.arn
-#   handler          = "save_log_prod.lambda_handler"
-#   runtime          = "python3.9"
-#   environment {
-#     variables = {
-#       TABLE_NAME = aws_dynamodb_table.games_logs_prod.name
-#     }
-#   }
-# }
+  cluster_name    = local.cluster_name
+  cluster_version = "1.24"
+
+  vpc_id                         = module.vpc.vpc_id
+  subnet_ids                     = module.vpc.private_subnets
+  cluster_endpoint_public_access = true
+
+  eks_managed_node_group_defaults = {
+    ami_type = "AL2_x86_64"
+
+  }
+
+  eks_managed_node_groups = {
+    one = {
+      name = "node-group-1"
+
+      instance_types = ["t3.small"]
+
+      min_size     = 1
+      max_size     = 3
+      desired_size = 2
+    }
+
+    two = {
+      name = "node-group-2"
+
+      instance_types = ["t3.small"]
+
+      min_size     = 1
+      max_size     = 2
+      desired_size = 1
+    }
+  }
+}
 
 
-# #Lambda function to get the logs
-# resource "aws_lambda_function" "get_logs_prod" {
-#   filename         = "${path.module}/get_logs.zip"
-#   function_name    = "GetLogsFunctionProd"
-#   role             = aws_iam_role.lambda_role_prod.arn
-#   handler          = "get_logs_prod.lambda_handler"
-#   runtime          = "python3.9"
-#   environment {
-#     variables = {
-#       TABLE_NAME = aws_dynamodb_table.games_logs_prod.name
-#     }
-#   }
-# }
+# https://aws.amazon.com/blogs/containers/amazon-ebs-csi-driver-is-now-generally-available-in-amazon-eks-add-ons/
+data "aws_iam_policy" "ebs_csi_policy" {
+  arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+}
 
+module "irsa-ebs-csi" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-assumable-role-with-oidc"
+  version = "4.7.0"
 
-# #Basic rest API gateway 
-# resource "aws_api_gateway_rest_api" "logs_api" {
-#   name = "GamesLogsAPI"
-# }
+  create_role                   = true
+  role_name                     = "AmazonEKSTFEBSCSIRole-${module.eks.cluster_name}"
+  provider_url                  = module.eks.oidc_provider
+  role_policy_arns              = [data.aws_iam_policy.ebs_csi_policy.arn]
+  oidc_fully_qualified_subjects = ["system:serviceaccount:kube-system:ebs-csi-controller-sa"]
+}
 
-# resource "aws_api_gateway_resource" "logs_resource" {
-#   rest_api_id = aws_api_gateway_rest_api.logs_api.id
-#   parent_id   = aws_api_gateway_rest_api.logs_api.root_resource_id
-#   path_part   = "games_logs"
-# }
-
-# # Post method execution
-# resource "aws_api_gateway_method" "post_method" {
-#   rest_api_id   = aws_api_gateway_rest_api.logs_api.id
-#   resource_id   = aws_api_gateway_resource.logs_resource.id
-#   http_method   = "POST"
-#   authorization = "NONE"
-# }
-
-
-# #Get method execution
-# resource "aws_api_gateway_method" "get_method" {
-#   rest_api_id   = aws_api_gateway_rest_api.logs_api.id
-#   resource_id   = aws_api_gateway_resource.logs_resource.id
-#   http_method   = "GET"
-#   authorization = "NONE"
-# }
-
-
-# #post_logs lambda integration
-# resource "aws_api_gateway_integration" "post_integration" {
-#   rest_api_id = aws_api_gateway_rest_api.logs_api.id
-#   resource_id = aws_api_gateway_resource.logs_resource.id
-#   http_method = aws_api_gateway_method.post_method.http_method
-#   type        = "AWS_PROXY"
-#   integration_http_method = "POST"
-#   uri = aws_lambda_function.save_log_prod.invoke_arn
-# }
-
-# #gett_logs lambda integration
-# resource "aws_api_gateway_integration" "get_integration" {
-#   rest_api_id = aws_api_gateway_rest_api.logs_api.id
-#   resource_id = aws_api_gateway_resource.logs_resource.id
-#   http_method = aws_api_gateway_method.get_method.http_method
-#   type        = "AWS_PROXY"
-#   integration_http_method = "GET"
-#   uri = aws_lambda_function.get_logs_prod.invoke_arn
-# }
-
-
-# #permission for API gateway to invoke post_logs lambda function
-# resource "aws_lambda_permission" "api_gateway_post" {
-#   statement_id  = "AllowAPIGatewayInvokePOST"
-#   action        = "lambda:InvokeFunction"
-#   function_name = aws_lambda_function.save_log_prod.arn
-#   principal     = "apigateway.amazonaws.com"
-#   source_arn    = "${aws_api_gateway_rest_api.logs_api.execution_arn}/*"
-# }
-
-
-# #permissions for API gateway to invoke get_logs lambda function
-# resource "aws_lambda_permission" "api_gateway_get" {
-#   statement_id  = "AllowAPIGatewayInvokeGET"
-#   action        = "lambda:InvokeFunction"
-#   function_name = aws_lambda_function.get_logs_prod.arn
-#   principal     = "apigateway.amazonaws.com"
-#   source_arn    = "${aws_api_gateway_rest_api.logs_api.execution_arn}/*"
-# }
-
-# #Output the api endpoint
-# output "api_endpoint" {
-#   value = "${aws_api_gateway_rest_api.logs_api.execution_arn}/games_logs"
-# }
+resource "aws_eks_addon" "ebs-csi" {
+  cluster_name             = module.eks.cluster_name
+  addon_name               = "aws-ebs-csi-driver"
+  addon_version            = "v1.5.2-eksbuild.1"
+  service_account_role_arn = module.irsa-ebs-csi.iam_role_arn
+  tags = {
+    "eks_addon" = "ebs-csi"
+    "terraform" = "true"
+  }
+}
