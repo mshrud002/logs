@@ -5,7 +5,7 @@
 
 
 
-# data "aws_availability_zones" "available" {}
+data "aws_availability_zones" "available" {}
 
 locals {
   cluster_name = "terraform-2-eks-${random_string.suffix.result}"
