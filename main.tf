@@ -111,6 +111,36 @@ resource "aws_eks_addon" "ebs-csi" {
 }
 
 
+resource "helm_release" "rancher" {
+  name       = "rancher"
+  namespace  = "cattle-system"
+  repository = "https://releases.rancher.com/server-charts/stable"
+  chart      = "rancher"
+  version    = "2.6.3"
+  create_namespace = true
+
+  set {
+    name  = "hostname"
+    value = "rancher.your-domain.com"
+  }
+
+  set {
+    name  = "ingress.tls.source"
+    value = "secret"
+  }
+
+  set {
+    name  = "replicas"
+    value = "3"
+  }
+}
+
+# EKS cluster authentication (required for Helm)
+data "aws_eks_cluster_auth" "main" {
+  name = aws_eks_cluster.main.name
+}
+
+
 
 # # https://aws.amazon.com/blogs/containers/amazon-ebs-csi-driver-is-now-generally-available-in-amazon-eks-add-ons/
 # data "aws_iam_policy" "ebs_csi_policy" {
