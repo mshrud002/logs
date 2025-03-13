@@ -147,7 +147,7 @@ resource "helm_release" "rancher" {
 
 # EKS cluster authentication (required for Helm)
 data "aws_eks_cluster_auth" "main" {
-  name = eks.cluster_name
+  name = module.eks.cluster_name
 }
 
 
