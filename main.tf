@@ -150,7 +150,16 @@ data "aws_eks_cluster_auth" "main" {
   name = module.eks.cluster_name
 }
 
+###################### ALB tO EXPOSE RANCHER ##############################################
 
+resource "aws_lb" "rancher_lb" {
+  name               = "rancher-lb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.eks_sg.id]
+  subnets            = [aws_subnet.subnet_1.id, aws_subnet.subnet_2.id]
+  enable_deletion_protection = false
+}
 ####################### EKS Loadbalancer For Rancher ######################################
 resource "aws_lb_target_group" "rancher_target_group" {
   name     = "rancher-target-group"
@@ -175,10 +184,11 @@ resource "aws_lb_listener" "rancher_listener" {
   protocol          = "HTTP"
 
   default_action {
-    type = "forward"
+    type             = "forward"
     target_group_arn = aws_lb_target_group.rancher_target_group.arn
   }
 }
+
 
 ################################### Register odes as a target ##########################
 
