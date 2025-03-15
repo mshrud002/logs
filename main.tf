@@ -83,6 +83,11 @@ module "eks" {
   }
 }
 
+# Accessing the instances of the node group
+output "node_group_instances" {
+  value = module.eks.node_groups["one"].instances
+}
+
 
 # https://aws.amazon.com/blogs/containers/amazon-ebs-csi-driver-is-now-generally-available-in-amazon-eks-add-ons/
 data "aws_iam_policy" "ebs_csi_policy" {
@@ -150,14 +155,23 @@ data "aws_eks_cluster_auth" "main" {
   name = module.eks.cluster_name
 }
 
+
+data "aws_eks_cluster" "eks_cluster" {
+  name = module.eks.cluster_name  # Or replace with your cluster name
+}
+
+data "aws_security_group" "eks_worker_sg" {
+  id = data.aws_eks_cluster.eks_cluster.resources_vpc_config.security_group_ids[0]  # Extracts the first security group ID associated with EKS nodes
+}
+
 ###################### ALB tO EXPOSE RANCHER ##############################################
 
 resource "aws_lb" "rancher_lb" {
   name               = "rancher-lb"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.eks_sg.id]
-  subnets            = [aws_subnet.subnet_1.id, aws_subnet.subnet_2.id]
+  security_groups    = [data.aws_security_group.eks_worker_sg.id]
+  subnets            = module.vpc.public_subnet
   enable_deletion_protection = false
 }
 ####################### EKS Loadbalancer For Rancher ######################################
@@ -193,10 +207,10 @@ resource "aws_lb_listener" "rancher_listener" {
 ################################### Register odes as a target ##########################
 
 resource "aws_lb_target_group_attachment" "rancher_targets" {
-  count            = length(module.eks.node_groups["node-group-1"].instances)
+  count        = length(module.eks.node_groups["one"].instances)
   target_group_arn = aws_lb_target_group.rancher_target_group.arn
-  target_id        = element(module.eks.node_groups["node-group-1"].instances, count.index)
-  port            = 80
+  target_id     = element(module.eks.node_groups["one"].instances, count.index)
+  port          = 80
 }
 #################################### Output url #######################################
 
