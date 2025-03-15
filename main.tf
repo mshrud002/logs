@@ -205,7 +205,7 @@ resource "aws_lb_listener" "rancher_listener" {
 
 data "aws_instance" "eks_worker_nodes" {
   filter {
-    name   = "tag:aws:eks:nodegroup-name"
+    name   = "tag:eks:nodegroup-name"
     values = ["node-group-1"]
   }
 }
