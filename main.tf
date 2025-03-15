@@ -151,6 +151,51 @@ data "aws_eks_cluster_auth" "main" {
 }
 
 
+####################### EKS Loadbalancer For Rancher ######################################
+resource "aws_lb_target_group" "rancher_target_group" {
+  name     = "rancher-target-group"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = module.vpc.vpc_id
+  target_type = "ip"
+
+  health_check {
+    path                = "/healthz"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 3
+    unhealthy_threshold = 2
+  }
+}
+
+###################################### Forward Requests to Rancher ######################
+resource "aws_lb_listener" "rancher_listener" {
+  load_balancer_arn = aws_lb.rancher_lb.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type = "forward"
+    target_group_arn = aws_lb_target_group.rancher_target_group.arn
+  }
+}
+
+################################### Register odes as a target ##########################
+
+resource "aws_lb_target_group_attachment" "rancher_targets" {
+  count            = length(module.eks.node_groups["node-group-1"].instances)
+  target_group_arn = aws_lb_target_group.rancher_target_group.arn
+  target_id        = element(module.eks.node_groups["node-group-1"].instances, count.index)
+  port            = 80
+}
+#################################### Output url #######################################
+
+output "rancher_lb_dns_name" {
+  value = aws_lb.rancher_lb.dns_name
+}
+
+
+
 
 # # https://aws.amazon.com/blogs/containers/amazon-ebs-csi-driver-is-now-generally-available-in-amazon-eks-add-ons/
 # data "aws_iam_policy" "ebs_csi_policy" {
