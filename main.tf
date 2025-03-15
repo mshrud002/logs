@@ -155,14 +155,14 @@ data "aws_eks_cluster_auth" "main" {
   name = module.eks.cluster_name
 }
 
-
 data "aws_eks_cluster" "eks_cluster" {
   name = module.eks.cluster_name  # Or replace with your cluster name
 }
 
 data "aws_security_group" "eks_worker_sg" {
-  id = data.aws_eks_cluster.eks_cluster.resources_vpc_config.security_group_ids[0]  # Extracts the first security group ID associated with EKS nodes
+  id = data.aws_eks_cluster.eks_cluster.vpc_config[0].security_group_ids[0]  # Corrected to vpc_config
 }
+
 
 ###################### ALB tO EXPOSE RANCHER ##############################################
 
