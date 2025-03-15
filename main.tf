@@ -155,21 +155,13 @@ data "aws_eks_cluster_auth" "main" {
   name = module.eks.cluster_name
 }
 
-data "aws_eks_cluster" "eks_cluster" {
-  name = module.eks.cluster_name
-}
-
-data "aws_security_group" "eks_worker_sg" {
-  id = element(data.aws_eks_cluster.eks_cluster.vpc_config[0].security_group_ids, 0)
-}
-
 ###################### ALB tO EXPOSE RANCHER ##############################################
 
 resource "aws_lb" "rancher_lb" {
   name               = "rancher-lb"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [data.aws_security_group.eks_sg.id]
+  security_groups    = [element(data.aws_eks_cluster.eks_cluster.vpc_config[0].security_group_ids, 0)] 
   subnets            = module.vpc.public_subnet
   enable_deletion_protection = false
 }
