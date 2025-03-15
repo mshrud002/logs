@@ -168,7 +168,7 @@ resource "aws_lb" "rancher_lb" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [var.eks_sg_id]
-  subnets            = module.vpc.public_subnet
+  subnets            = module.vpc.public_subnets
   enable_deletion_protection = false
 }
 ####################### EKS Loadbalancer For Rancher ######################################
