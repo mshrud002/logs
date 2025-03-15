@@ -159,7 +159,7 @@ data "aws_eks_cluster" "eks_cluster" {
   name = module.eks.cluster_name  # Or replace with your cluster name
 }
 
-data "aws_security_group" "eks_worker_sg" {
+data "aws_security_group" "eks_sg" {
   id = sg-0b17326567c5bb937
 }
 
@@ -169,7 +169,7 @@ resource "aws_lb" "rancher_lb" {
   name               = "rancher-lb"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [data.aws_security_group.eks_worker_sg.id]
+  security_groups    = [data.aws_security_group.eks_sg.id]
   subnets            = module.vpc.public_subnet
   enable_deletion_protection = false
 }
