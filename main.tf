@@ -131,7 +131,7 @@ resource "helm_release" "rancher" {
 
   set {
     name  = "hostname"
-    value = "rancher.your-domain.com"
+    value = "rancher.rancher-kubestronaut.com"
   }
 
   set {
