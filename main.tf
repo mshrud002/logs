@@ -161,7 +161,7 @@ resource "aws_lb" "rancher_lb" {
   name               = "rancher-lb"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [element(data.aws_eks_cluster.eks_cluster.vpc_config[0].security_group_ids, 0)] 
+  security_groups    = [element(data.aws_eks_cluster.eks_cluster.vpc_config.security_group_ids, 0)] # Corrected access 
   subnets            = module.vpc.public_subnet
   enable_deletion_protection = false
 }
