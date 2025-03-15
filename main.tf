@@ -85,7 +85,7 @@ module "eks" {
 
 # Accessing the instances of the node group
 output "node_group_instances" {
-  value = module.eks.node_groups["one"].instances
+  value = module.eks.node_groups["node-group-1"].instances
 }
 
 
