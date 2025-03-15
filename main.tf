@@ -7,6 +7,12 @@
 
 data "aws_availability_zones" "available" {}
 
+variable "eks_sg_id" {
+  description = "EKS Security Group ID"
+  type        = string
+  default     = "sg-0f50e6ad89c1cbdf3"
+}
+
 locals {
   cluster_name = "terraform-2-eks-${random_string.suffix.result}"
 }
@@ -161,7 +167,7 @@ resource "aws_lb" "rancher_lb" {
   name               = "rancher-lb"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [element(data.aws_eks_cluster.eks_cluster.vpc_config.security_group_ids, 0)] # Corrected access 
+  security_groups    = [var.eks_sg_id]
   subnets            = module.vpc.public_subnet
   enable_deletion_protection = false
 }
