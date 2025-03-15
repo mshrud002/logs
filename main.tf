@@ -210,11 +210,21 @@ data "aws_instance" "eks_worker_nodes" {
   }
 }
 
+
+data "aws_autoscaling_group" "eks_asg" {
+  name = data.aws_autoscaling_groups.eks_asg_groups.names[0]
+}
+
+output "eks_worker_node_ids" {
+  value = data.aws_instances.eks_worker_nodes.ids
+}
+
+# Attach nodes to Target Group
 resource "aws_lb_target_group_attachment" "rancher_targets" {
-  count        = length(data.aws_instance.eks_worker_nodes)
-  target_group_arn = aws_lb_target_group.rancher_target_group.arn
-  target_id     = element(data.aws_instance.eks_worker_nodes.id, count.index)
-  port          = 80
+  count               = length(data.aws_instances.eks_worker_nodes.ids)
+  target_group_arn    = aws_lb_target_group.rancher_target_group.arn
+  target_id           = element(data.aws_instances.eks_worker_nodes.ids, count.index)
+  port                = 80
 }
 #################################### Output url #######################################
 
