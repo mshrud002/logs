@@ -160,9 +160,8 @@ data "aws_eks_cluster" "eks_cluster" {
 }
 
 data "aws_security_group" "eks_worker_sg" {
-  id = module.eks..vpc_config[0].security_group_ids[0]  # Corrected to vpc_config
+  id = data.aws_eks_cluster.eks_cluster.vpc_config.security_group_ids[0]
 }
-
 
 ###################### ALB tO EXPOSE RANCHER ##############################################
 
