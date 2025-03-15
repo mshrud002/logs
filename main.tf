@@ -160,7 +160,7 @@ data "aws_eks_cluster" "eks_cluster" {
 }
 
 data "aws_security_group" "eks_worker_sg" {
-  id = data.aws_eks_cluster.eks_cluster.vpc_config[0].security_group_ids[0]
+  id = sg-0b17326567c5bb937
 }
 
 ###################### ALB tO EXPOSE RANCHER ##############################################
