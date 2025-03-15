@@ -84,9 +84,9 @@ module "eks" {
 }
 
 # Accessing the instances of the node group
-output "node_group_instances" {
-  value = module.eks.node_groups["node-group-1"].instances
-}
+#output "node_group_instances" {
+#  value = module.eks.node_groups["node-group-1"].instances
+#}
 
 
 # https://aws.amazon.com/blogs/containers/amazon-ebs-csi-driver-is-now-generally-available-in-amazon-eks-add-ons/
@@ -206,10 +206,17 @@ resource "aws_lb_listener" "rancher_listener" {
 
 ################################### Register odes as a target ##########################
 
+data "aws_instance" "eks_worker_nodes" {
+  filter {
+    name   = "tag:aws:eks:nodegroup-name"
+    values = ["node-group-1"]
+  }
+}
+
 resource "aws_lb_target_group_attachment" "rancher_targets" {
-  count        = length(module.eks.node_groups["one"].instances)
+  count        = length(data.aws_instance.eks_worker_nodes)
   target_group_arn = aws_lb_target_group.rancher_target_group.arn
-  target_id     = element(module.eks.node_groups["one"].instances, count.index)
+  target_id     = element(data.aws_instance.eks_worker_nodes.id, count.index)
   port          = 80
 }
 #################################### Output url #######################################
