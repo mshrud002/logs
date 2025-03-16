@@ -194,7 +194,7 @@ resource "helm_release" "rancher" {
 
   set {
     name  = "ingress.annotations.alb\\.ingress\\.kubernetes\\.io/listen-ports"
-    value = '[{"HTTP":80}, {"HTTPS":443}]'
+    value = "[{"HTTP":80}, {"HTTPS":443}]"
   }
 }
 
