@@ -203,25 +203,28 @@ resource "aws_lb_listener" "rancher_listener" {
 
 ################################### Register odes as a target ##########################
 
-# Extract ASG names directly from the EKS module output
-output "eks_asg_names" {
-  value = module.eks.eks_managed_node_groups_autoscaling_group_names
-}
-
-# Use the ASG name in a data block to get instance details
+# Extract the first Auto Scaling Group name from the EKS module output
 data "aws_autoscaling_group" "eks_asg" {
   name = module.eks.eks_managed_node_groups_autoscaling_group_names[0]
 }
 
-# Retrieve instance IDs from the ASG
-output "eks_worker_node_ids" {
-  value = data.aws_autoscaling_group.eks_asg.instances[*].instance_id
+# Use aws_instance data source to filter instances in the ASG
+data "aws_instances" "eks_worker_nodes" {
+  filter {
+    name   = "tag:aws:autoscaling:groupName"
+    values = [data.aws_autoscaling_group.eks_asg.name]
+  }
 }
 
+output "eks_worker_node_ids" {
+  value = data.aws_instances.eks_worker_nodes.ids
+}
+
+# Attach instances to the load balancer target group
 resource "aws_lb_target_group_attachment" "rancher_targets" {
-  count            = length(data.aws_autoscaling_group.eks_asg.instances)
+  count            = length(data.aws_instances.eks_worker_nodes.ids)
   target_group_arn = aws_lb_target_group.rancher_target_group.arn
-  target_id        = data.aws_autoscaling_group.eks_asg.instances[count.index].instance_id
+  target_id        = element(data.aws_instances.eks_worker_nodes.ids, count.index)
   port             = 80
 }
 ############################### Output url #######################################
