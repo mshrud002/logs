@@ -191,6 +191,11 @@ resource "helm_release" "rancher" {
     name  = "ingress.tls.enabled"
     value = "false" # or true if using ACM certs
   }
+
+  set {
+    name  = "ingress.annotations.alb\\.ingress\\.kubernetes\\.io/listen-ports"
+    value = "[{\"HTTP\": 80}, {\"HTTPS\": 443}]"
+  }
 }
 
 # EKS cluster authentication (required for Helm)
