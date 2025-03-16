@@ -203,29 +203,28 @@ resource "aws_lb_listener" "rancher_listener" {
 
 ################################### Register odes as a target ##########################
 
-data "aws_instance" "eks_worker_nodes" {
-  filter {
-    name   = "tag:eks:nodegroup-name"
-    values = ["node-group-1"]
-  }
+# Extract ASG names directly from the EKS module output
+output "eks_asg_names" {
+  value = module.eks.eks_managed_node_groups_autoscaling_group_names
 }
 
-
+# Use the ASG name in a data block to get instance details
 data "aws_autoscaling_group" "eks_asg" {
-  name = data.aws_autoscaling_groups.eks_asg.names[0]
+  name = module.eks.eks_managed_node_groups_autoscaling_group_names[0]
 }
 
+# Retrieve instance IDs from the ASG
 output "eks_worker_node_ids" {
-  value = data.aws_autoscaling_group.eks_asg.instances
+  value = data.aws_autoscaling_group.eks_asg.instances[*].instance_id
 }
 
 resource "aws_lb_target_group_attachment" "rancher_targets" {
-  count        = length(data.aws_instance.eks_worker_nodes)
+  count            = length(data.aws_autoscaling_group.eks_asg.instances)
   target_group_arn = aws_lb_target_group.rancher_target_group.arn
-  target_id     = element(data.aws_instance.eks_worker_nodes.id, count.index)
-  port          = 80
+  target_id        = data.aws_autoscaling_group.eks_asg.instances[count.index].instance_id
+  port             = 80
 }
-#################################### Output url #######################################
+############################### Output url #######################################
 
 output "rancher_lb_dns_name" {
   value = aws_lb.rancher_lb.dns_name
