@@ -154,6 +154,36 @@ resource "helm_release" "rancher" {
     name  = "replicas"
     value = "3"
   }
+
+    set {
+    name  = "ingress.enabled"
+    value = "true"
+  }
+
+  set {
+    name  = "ingress.ingressClassName"
+    value = "alb" # assuming you're using AWS ALB ingress controller
+  }
+
+  set {
+    name  = "ingress.annotations.kubernetes\\.io/ingress\\.class"
+    value = "alb"
+  }
+
+  set {
+    name  = "ingress.annotations.alb\\.ingress\\.kubernetes\\.io/scheme"
+    value = "internet-facing"
+  }
+
+  set {
+    name  = "ingress.annotations.alb\\.ingress\\.kubernetes\\.io/target-type"
+    value = "ip"
+  }
+
+  set {
+    name  = "ingress.tls.enabled"
+    value = "false" # or true if using ACM certs
+  }
 }
 
 # EKS cluster authentication (required for Helm)
