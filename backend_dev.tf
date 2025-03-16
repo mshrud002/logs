@@ -3,7 +3,7 @@ terraform {
     hostname     = "app.terraform.io"
     organization = "ProjZero"
     workspaces {
-      name = "aws-projzero-dev"
+      name = "aws-projzero-prod"
     }
   }
   # required_version = ">= 1.0.0"
