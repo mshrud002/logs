@@ -162,11 +162,11 @@ data "aws_eks_cluster_auth" "main" {
 }
 
 
-###################### Add ALB Listener seccurity group ###########################################
+###################### Add ALB Listener security group ###########################################
 
 resource "aws_security_group" "rancher_lb_sg" {
   name   = "rancher-lb-sg"
-  vpc_id = aws_vpc.main.id
+  vpc_id = module.vpc.vpc_id
 
   ingress {
     description = "HTTP"
