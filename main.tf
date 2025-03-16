@@ -300,6 +300,65 @@ output "rancher_lb_dns_name" {
 }
 
 
+############################## ALB Controller @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+module "alb_ingress_controller_irsa" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-assumable-role-with-oidc"
+  version = "4.7.0"
+
+  create_role                   = true
+  role_name                     = "aws-load-balancer-controller-${module.eks.cluster_name}"
+  provider_url                  = module.eks.oidc_provider
+  role_policy_arns              = ["arn:aws:iam::aws:policy/ElasticLoadBalancingFullAccess"]
+  oidc_fully_qualified_subjects = ["system:serviceaccount:kube-system:aws-load-balancer-controller"]
+}
+
+resource "helm_release" "aws_load_balancer_controller" {
+  name       = "aws-load-balancer-controller"
+  namespace  = "kube-system"
+  repository = "https://aws.github.io/eks-charts"
+  chart      = "aws-load-balancer-controller"
+  version    = "1.8.1"
+
+  set {
+    name  = "clusterName"
+    value = module.eks.cluster_name
+  }
+
+  set {
+    name  = "serviceAccount.create"
+    value = "false"
+  }
+
+  set {
+    name  = "serviceAccount.name"
+    value = "aws-load-balancer-controller"
+  }
+
+  set {
+    name  = "region"
+    value = "us-east-1" # Change based on your region
+  }
+
+  set {
+    name  = "vpcId"
+    value = module.vpc.vpc_id
+  }
+
+  depends_on = [module.alb_ingress_controller_irsa]
+}
+
+resource "kubernetes_service_account" "aws_lb_controller_sa" {
+  metadata {
+    name      = "aws-load-balancer-controller"
+    namespace = "kube-system"
+    annotations = {
+      "eks.amazonaws.com/role-arn" = module.alb_ingress_controller_irsa.iam_role_arn
+    }
+  }
+}
+
+
 
 
 # # https://aws.amazon.com/blogs/containers/amazon-ebs-csi-driver-is-now-generally-available-in-amazon-eks-add-ons/
